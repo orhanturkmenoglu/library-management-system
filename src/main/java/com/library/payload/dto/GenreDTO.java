@@ -1,0 +1,47 @@
+package com.library.payload.dto;
+
+
+import jakarta.persistence.OneToMany;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import lombok.*;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Getter @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class GenreDTO {
+
+    private Long id;
+
+    @NotBlank(message = "Genre code is mandatory")
+    private String code;
+
+    @NotBlank(message = "Genre name is mandatory")
+    private String name;
+
+    @Size(max = 500, message = "Description can be at most 500 characters")
+    private String description;
+
+    @Min(value = 0, message = "Display order must be non-negative")
+    private Integer displayOrder = 0;
+
+    private Boolean active;
+
+    private Long parentGenreId;
+
+    private String parentGenreName;
+
+    @OneToMany
+    private List<GenreDTO> parentGenre;
+
+    private Long countOfBooks;
+
+    private LocalDateTime createdAt;
+
+    private LocalDateTime updatedAt;
+}
