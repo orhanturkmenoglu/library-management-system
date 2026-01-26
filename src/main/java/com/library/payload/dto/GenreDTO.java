@@ -1,7 +1,6 @@
 package com.library.payload.dto;
 
 
-import jakarta.persistence.OneToMany;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -36,8 +35,7 @@ public class GenreDTO {
 
     private String parentGenreName;
 
-    @OneToMany
-    private List<GenreDTO> parentGenre;
+    private List<GenreDTO> subGenre;
 
     private Long countOfBooks;
 
