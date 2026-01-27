@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.AssertTrue;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -20,7 +23,7 @@ public class Book {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
-    @Column(unique = true,nullable = true)
+    @Column(unique = true)
     private String isbn;
 
     @Column(nullable =false)
@@ -57,10 +60,11 @@ public class Book {
     private Boolean active=true;
 
     @CreationTimestamp
-    @Column(nullable = false)
+    @Column(updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(nullable = false)
+    @UpdateTimestamp
+    @Column
     private LocalDateTime updatedAt;
 
 

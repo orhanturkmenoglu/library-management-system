@@ -1,7 +1,6 @@
 package com.library.payload.dto;
 
-import com.library.modal.Genre;
-import jakarta.persistence.*;
+
 import jakarta.validation.constraints.*;
 import lombok.*;
 

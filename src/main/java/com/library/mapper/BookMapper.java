@@ -71,7 +71,7 @@ public class BookMapper {
 
     private void mapCommonFields(BookDTO bookDTO, Book book) {
 
-        book.setId(bookDTO.getId());
+        book.setIsbn(bookDTO.getIsbn());
         book.setTitle(bookDTO.getTitle());
         book.setAuthor(bookDTO.getAuthor());
 

@@ -14,6 +14,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +26,7 @@ public class BookServiceImpl implements BookService {
     private final BookRepository bookRepository;
     private final BookMapper bookMapper;
 
+    @Transactional
     @Override
     public BookDTO createBook(BookDTO bookDTO) {
         if (bookRepository.existsByIsbn(bookDTO.getIsbn())) {
@@ -36,10 +38,11 @@ public class BookServiceImpl implements BookService {
         // total and available copies should be same when creating a new book
         book.isAvailableCopiesValid();
 
-        Book savedBook = bookRepository.save(book);
+        Book savedBook = bookRepository.saveAndFlush(book);
         return bookMapper.toDTO(savedBook);
     }
 
+    @Transactional
     @Override
     public List<BookDTO> createBooksBulk(List<BookDTO> bookDTOList) {
 
@@ -76,7 +79,7 @@ public class BookServiceImpl implements BookService {
 
         existingBook.isAvailableCopiesValid();
 
-        bookRepository.save(existingBook);
+        bookRepository.saveAndFlush(existingBook);
 
         return bookMapper.toDTO(existingBook);
     }
