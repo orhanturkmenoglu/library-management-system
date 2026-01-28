@@ -176,7 +176,7 @@ mvn test
 
 ## 🗺️ Yol Haritası (Kısa)
 - OAuth2 (Google) login akışı
-- Razorpay ödeme entegrasyonu
+- Stripe ödeme entegrasyonu
 - Abonelik planları ve plan yenileme
 - Rezervasyon kuyruğu + concurrency kontrolü
 - Scheduler: overdue işaretleme + otomatik ceza
