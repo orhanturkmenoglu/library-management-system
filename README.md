@@ -22,7 +22,7 @@ Spring Boot + React + OAuth2 tabanlı, gerçek hayattaki dijital kütüphane sü
 - **ISBN doğrulama** ve tekrar kayıtların engellenmesi
 
 ### 💳 Ödeme & Finans Modülü
-- **Razorpay** entegrasyonu (test anahtarları ile)
+- **Stripe** entegrasyonu (test anahtarları ile)
 - **Ceza ödemeleri**: gecikme cezası (örn. 5/gün) ve ödeme bitmeden yeni ödünç engeli
 - **Üyelik abonelikleri**: Silver/Gold planları, plan bitişi/yenileme
 - **Transaction History**: başarı/başarısız/tekrar deneme kayıtları
