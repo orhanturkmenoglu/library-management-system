@@ -1,4 +1,29 @@
 package com.library.module.auth.model;
 
+import com.library.module.user.model.User;
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.time.LocalDateTime;
+
+@Entity
+@Getter @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class PasswordResetToken {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private Long id;
+
+    @Column(unique = true,nullable = false)
+    private String token;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id",nullable = false)
+    private User user;
+
+    @Column(updatable = false, nullable = false)
+    private LocalDateTime expiryDate;
 }
