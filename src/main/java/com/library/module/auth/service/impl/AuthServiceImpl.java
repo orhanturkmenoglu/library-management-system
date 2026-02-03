@@ -15,9 +15,11 @@ import com.library.shared.domain.UserRole;
 import com.library.shared.security.jwt.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -26,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -40,132 +43,164 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final EmailService emailService;
 
+    private static final String FRONTEND_RESET_URL = "http://localhost:5173/reset-password?token=";
+
+
     @Override
-    public AuthResponse login(LoginRequestDTO loginRequestDTO) {
-        Authentication authentication =
-                authenticate(loginRequestDTO);
+    @Transactional
+    public AuthResponse login(LoginRequestDTO request) {
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+        Authentication authentication = authenticate(request);
+        setSecurityContext(authentication);
 
-        String token = jwtUtil.generateToken(loginRequestDTO.username());
+        User user = findUserByEmail(request.username());
+        updateLastLogin(user);
 
-        User user = userRepository.findByEmail(loginRequestDTO.username())
-                .orElseThrow(() -> new UsernameNotFoundException("User not found "));
+        String token = jwtUtil.generateToken(user.getEmail());
 
-        user.setLastLogin(LocalDateTime.now());
-
-        User savedUser = userRepository.save(user);
-
-        return AuthResponse.builder()
-                .title("Login success")
-                .message("Welcome Back " + savedUser.getFullName())
-                .token(token)
-                .user(UserMapper.toDTO(savedUser))
-                .build();
+        return buildAuthResponse(
+                "Login Success",
+                "Welcome back " + user.getFullName(),
+                token,
+                user
+        );
     }
 
-    private Authentication authenticate(LoginRequestDTO loginRequestDTO) {
-        UserDetails userDetails = customUserDetailsService.loadUserByUsername(loginRequestDTO.username());
+    private Authentication authenticate(LoginRequestDTO request) {
+        UserDetails userDetails =
+                customUserDetailsService.loadUserByUsername(request.username());
 
-        if (userDetails == null) {
-            throw new UsernameNotFoundException("Invalid username or password");
-        }
-
-        if (!passwordEncoder.matches(loginRequestDTO.password(), userDetails.getPassword())) {
+        if (!passwordEncoder.matches(request.password(), userDetails.getPassword())) {
             throw new BadCredentialsException("Invalid username or password");
         }
 
-        return new UsernamePasswordAuthenticationToken(loginRequestDTO.username(),
+        return new UsernamePasswordAuthenticationToken(
+                userDetails.getUsername(),
                 null,
-                userDetails.getAuthorities());
-    }
-
-    @Transactional
-    @Override
-    public AuthResponse signup(UserDTO userDTO) {
-        User user = userRepository.findByEmail(userDTO.getEmail())
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-
-        if (user == null) {
-            throw new UsernameNotFoundException("User not found");
-        }
-
-        User newUser = User.builder()
-                .email(user.getEmail())
-                .password(passwordEncoder.encode(user.getPassword()))
-                .fullName(user.getFullName())
-                .phone(user.getPhone())
-                .role(UserRole.ROLE_USER)
-                .profileImage(user.getProfileImage())
-                .lastLogin(LocalDateTime.now())
-                .build();
-
-        User savedUser = userRepository.save(newUser);
-
-        Authentication auth = new UsernamePasswordAuthenticationToken(
-                savedUser.getEmail(),
-                savedUser.getPassword()
+                userDetails.getAuthorities()
         );
+    }
 
-        SecurityContextHolder.getContext().setAuthentication(auth);
+    @Override
+    @Transactional
+    public AuthResponse signup(UserDTO userDTO) {
 
-        String accessToken = jwtUtil.generateToken(savedUser.getEmail());
+        validateEmailUniqueness(userDTO.getEmail());
 
-        return AuthResponse.builder()
-                .token(accessToken)
-                .user(UserMapper.toDTO(savedUser))
-                .message("User registered successfully")
-                .title("Registration Successful")
+        User savedUser = userRepository.save(buildUser(userDTO));
+        setSecurityContext(buildAuthentication(savedUser));
+
+        String token = jwtUtil.generateToken(savedUser.getEmail());
+
+        return buildAuthResponse(
+                "Registration Successful",
+                "User registered successfully",
+                token,
+                savedUser
+        );
+    }
+
+    private User buildUser(UserDTO dto) {
+        return User.builder()
+                .email(dto.getEmail())
+                .password(passwordEncoder.encode(dto.getPassword()))
+                .fullName(dto.getFullName())
+                .phone(dto.getPhone())
+                .role(UserRole.ROLE_USER)
                 .build();
     }
 
-    @Transactional
+    private void validateEmailUniqueness(String email) {
+        if (userRepository.existsByEmail(email)) {
+            throw new DuplicateKeyException("Email address is already in use");
+        }
+    }
+
     @Override
+    @Transactional
     public void createPasswordResetToken(String email) {
 
-        // email ile sıfırlama linki gönder
-        String frontendUrl = "http://localhost:5173";
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-
-
+        User user = findUserByEmail(email);
         String token = UUID.randomUUID().toString();
 
-        PasswordResetToken passwordResetToken = PasswordResetToken.builder()
+        PasswordResetToken resetToken = PasswordResetToken.builder()
                 .token(token)
                 .user(user)
                 .expiryDate(LocalDateTime.now().plusMinutes(5))
                 .build();
 
+        passwordResetTokenRepository.save(resetToken);
 
-        passwordResetTokenRepository.save(passwordResetToken);
-        String resetLink = frontendUrl + token;
-        String subject = "Password Reset Link";
-        String body = "You requested to reset your password.Use this link (valid 3 minutes) : {}" + resetLink;
-
-        emailService.sendEmail(user.getEmail(), subject, body);
-        log.info("Email sent to {}", resetLink);
+        sendResetEmail(user.getEmail(), token);
     }
 
-    @Transactional
     @Override
+    @Transactional
     public void resetPassword(String token, String newPassword) {
 
-        PasswordResetToken passwordResetToken =
-                passwordResetTokenRepository.findByToken(token)
-                        .orElseThrow(() ->
-                                new IllegalArgumentException("Password reset token is invalid"));
+        PasswordResetToken resetToken = passwordResetTokenRepository
+                .findByToken(token)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid password reset token"));
 
-        if (passwordResetToken.getExpiryDate().isBefore(LocalDateTime.now())) {
-            throw new BadCredentialsException("Password reset token has expired");
-        }
+        validateTokenExpiry(resetToken);
 
-        User user = passwordResetToken.getUser();
+        User user = resetToken.getUser();
         user.setPassword(passwordEncoder.encode(newPassword));
 
         userRepository.save(user);
-        passwordResetTokenRepository.delete(passwordResetToken);
+        passwordResetTokenRepository.delete(resetToken);
 
-        log.info("Password reset token has been saved to {}", user.getEmail());
+        log.info("Password successfully reset for {}", user.getEmail());
+    }
+
+    private void validateTokenExpiry(PasswordResetToken token) {
+        if (token.getExpiryDate().isBefore(LocalDateTime.now())) {
+            throw new BadCredentialsException("Password reset token has expired");
+        }
+    }
+
+    private void sendResetEmail(String email, String token) {
+        String resetLink = FRONTEND_RESET_URL + token;
+        String subject = "Password Reset";
+        String body = "Click the link below to reset your password (valid for 5 minutes):\n" + resetLink;
+
+        emailService.sendEmail(email, subject, body);
+        log.info("Password reset email sent to {}", email);
+    }
+
+    private User findUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+    }
+
+    private void updateLastLogin(User user) {
+        user.setLastLogin(LocalDateTime.now());
+        userRepository.save(user);
+    }
+
+    private Authentication buildAuthentication(User user) {
+        return new UsernamePasswordAuthenticationToken(
+                user.getEmail(),
+                null,
+                List.of(new SimpleGrantedAuthority(user.getRole().name()))
+        );
+    }
+
+    private void setSecurityContext(Authentication authentication) {
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+    }
+
+    private AuthResponse buildAuthResponse(
+            String title,
+            String message,
+            String token,
+            User user
+    ) {
+        return AuthResponse.builder()
+                .title(title)
+                .message(message)
+                .token(token)
+                .user(UserMapper.toDTO(user))
+                .build();
     }
 }
