@@ -1,5 +1,6 @@
 package com.library.module.user.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.library.shared.domain.UserRole;
 import jakarta.validation.constraints.*;
 import lombok.*;
@@ -11,6 +12,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class UserDTO {
 
     private Long id;

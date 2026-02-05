@@ -19,12 +19,6 @@ public class BookController {
 
     private final BookService bookService;
 
-    @PostMapping
-    public ResponseEntity<BookDTO> createBook(@Valid @RequestBody BookDTO bookDTO) {
-        BookDTO createdBook = bookService.createBook(bookDTO);
-        return ResponseEntity.status(201).body(createdBook);
-    }
-
     @PostMapping("/bulk")
     public ResponseEntity<?> createBooksBulk(@Valid @RequestBody List<BookDTO> bookDTOs) {
         List<BookDTO> createdBooks = bookService.createBooksBulk(bookDTOs);

@@ -2,6 +2,7 @@ package com.library.module.auth.mapper;
 
 import com.library.module.user.dto.UserDTO;
 import com.library.module.user.model.User;
+import com.library.shared.domain.UserRole;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -24,10 +25,10 @@ public class UserMapper {
         return User.builder()
                 .fullName(userDTO.getFullName())
                 .email(userDTO.getEmail())
-                .password(userDTO.getPassword())
                 .phone(userDTO.getPhone())
-                .role(userDTO.getRole())
+                .role(userDTO.getRole() != null ? userDTO.getRole() : UserRole.ROLE_USER)
                 .createdAt(LocalDateTime.now())
+                .lastLogin(LocalDateTime.now())
                 .build();
     }
 }
