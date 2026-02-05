@@ -11,7 +11,6 @@ import com.library.module.notification.service.EmailService;
 import com.library.module.user.dto.UserDTO;
 import com.library.module.user.model.User;
 import com.library.module.user.repository.UserRepository;
-import com.library.shared.domain.UserRole;
 import com.library.shared.security.jwt.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,7 +18,6 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -28,7 +26,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -53,7 +50,7 @@ public class AuthServiceImpl implements AuthService {
         Authentication authentication = authenticate(request);
         setSecurityContext(authentication);
 
-        User user = findUserByEmail(request.username());
+        User user = findUserByEmail(request.email());
         updateLastLogin(user);
 
         String token = jwtUtil.generateToken(user.getEmail());
@@ -68,10 +65,10 @@ public class AuthServiceImpl implements AuthService {
 
     private Authentication authenticate(LoginRequestDTO request) {
         UserDetails userDetails =
-                customUserDetailsService.loadUserByUsername(request.username());
+                customUserDetailsService.loadUserByUsername(request.email());
 
         if (!passwordEncoder.matches(request.password(), userDetails.getPassword())) {
-            throw new BadCredentialsException("Invalid username or password");
+            throw new BadCredentialsException("Invalid email or password");
         }
 
         return new UsernamePasswordAuthenticationToken(
@@ -87,8 +84,10 @@ public class AuthServiceImpl implements AuthService {
 
         validateEmailUniqueness(userDTO.getEmail());
 
-        User savedUser = userRepository.save(buildUser(userDTO));
-        setSecurityContext(buildAuthentication(savedUser));
+        User entity = UserMapper.toEntity(userDTO);
+        entity.setPassword(passwordEncoder.encode(userDTO.getPassword()));
+
+        User savedUser = userRepository.save(entity);
 
         String token = jwtUtil.generateToken(savedUser.getEmail());
 
@@ -98,16 +97,6 @@ public class AuthServiceImpl implements AuthService {
                 token,
                 savedUser
         );
-    }
-
-    private User buildUser(UserDTO dto) {
-        return User.builder()
-                .email(dto.getEmail())
-                .password(passwordEncoder.encode(dto.getPassword()))
-                .fullName(dto.getFullName())
-                .phone(dto.getPhone())
-                .role(UserRole.ROLE_USER)
-                .build();
     }
 
     private void validateEmailUniqueness(String email) {
@@ -176,14 +165,6 @@ public class AuthServiceImpl implements AuthService {
     private void updateLastLogin(User user) {
         user.setLastLogin(LocalDateTime.now());
         userRepository.save(user);
-    }
-
-    private Authentication buildAuthentication(User user) {
-        return new UsernamePasswordAuthenticationToken(
-                user.getEmail(),
-                null,
-                List.of(new SimpleGrantedAuthority(user.getRole().name()))
-        );
     }
 
     private void setSecurityContext(Authentication authentication) {
