@@ -11,7 +11,6 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-
 public class SubscriptionPlanServiceImpl implements SubscriptionPlanService {
     @Override
     public SubscriptionPlanDTO createSubscriptionPlan(SubscriptionPlanDTO subscriptionPlanDTO) {

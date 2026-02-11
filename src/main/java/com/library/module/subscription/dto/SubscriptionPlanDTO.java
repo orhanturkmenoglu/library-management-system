@@ -1,10 +1,12 @@
 package com.library.module.subscription.dto;
 
 import jakarta.validation.constraints.*;
+import lombok.Builder;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+@Builder
 public record SubscriptionPlanDTO(
         Long id,
 
