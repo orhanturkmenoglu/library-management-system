@@ -5,10 +5,28 @@ Spring Boot + React + OAuth2 tabanlı, gerçek hayattaki dijital kütüphane sü
 
 ---
 
+## Repo tarama özeti (mevcut durum)
+Aşağıdaki bilgiler projede bulunan dosyalara göre otomatik tespit edilmiştir:
+- Java sürümü: 21 (pom.xml -> <java.version>)
+- Spring Boot sürümü: 4.0.2 (pom.xml parent)
+- Uygulama giriş noktası: `com.library.LibraryManagementSystemApplication`
+- `src/main/resources/application.yml` içinde:
+  - Port: 8080
+  - Context path: `/api/v1/library`
+  - Datasource bağlantısı `spring.datasource.url` için environment property `POSTGRES_URL` kullanılıyor
+  - JPA `ddl-auto: update` (uygulama ilk çalıştırmada tabloları oluşturacak)
+  - Flyway: disabled (`spring.flyway.enabled: false`)
+- Proje kökünde `.env.properties` dosyası olabileceği görünüyor (NOT: repo içinde bir `.env.properties` mevcut — bu dosyanın içinde gizli bilgiler bulunmamalıdır; aşağıda eylem önerisi var)
+- Maven wrapper mevcut: `mvnw` / `mvnw.cmd` (wrapper versiyonu ve dağıtım bilgisi .mvn/wrapper içinde)
+
+Bu README içeriği yukarıdaki gerçek repo durumuna göre güncellendi.
+
+---
+
 ## 🎯 Öne Çıkan Özellikler (Hedeflenen)
 
 ### 🔐 Banka Seviyesi Güvenlik & Kimlik Doğrulama
-- **Google OAuth2** ile tek tık giriş
+- **Google OAuth2** ile tek tık giriş (planlanan)
 - **JWT** ile stateless oturum yönetimi
 - **RBAC (Role Based Access Control)**:
   - **Admin Panel**: kitaplar, kullanıcılar, finans
@@ -87,8 +105,10 @@ com.library
 
 ## ⚙️ Kurulum (Backend)
 
-### 1) Ortam değişkenleri
-Bu proje `src/main/resources/application.yml` içinde `.env.properties` import edecek şekilde ayarlı:
+Aşağıdaki adımlar, repo içindeki `application.yml` ve mevcut `.env.properties` kullanımına göre düzenlenmiştir.
+
+### 1) Ortam değişkenleri / konfigürasyon
+Proje `src/main/resources/application.yml` içinde harici bir properties dosyası yükleyecek şekilde ayarlı:
 
 ```yml
 spring:
@@ -96,19 +116,36 @@ spring:
     import: optional:file:.env.properties
 ```
 
-Proje kök dizinine `.env.properties` oluşturun:
+Proje kökünde bir `.env.properties` oluşturun veya mevcut olanı düzenleyin. (NOT: repo kökünde bir `.env.properties` bulunabilir; içinde gerçek e-posta/parola gibi hassas veriler varsa bunları versiyon kontrolünden kaldırın.)
+
+Örnek içeriği (gizli bilgileri buraya koymayın — sadece şablon):
 
 ```properties
-POSTGRES_URL=jdbc:postgresql://localhost:5432/library
+# database
+POSTGRES_URL=jdbc:postgresql://localhost:5432/librarydb
 POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres
+POSTGRES_PASSWORD=your_db_password
+
+# mail (örnek)
+MAIL_APP_USERNAME=your@mail.com
+MAIL_APP_PASSWORD=your-mail-app-password
+
+# initial admin (örnek)
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=ChangeMe123!
+ADMIN_FULL_NAME=Admin User
 ```
 
-> İsterseniz doğrudan `application.yml` içine de yazabilirsiniz; ancak `.env.properties` tavsiye edilir.
+Projeye yardımcı olması için kök dizine bir `.env.properties.example` eklendi — kendi kopyanızı bu şablona göre oluşturun.
+
+### Güvenlik önerisi
+- `.env.properties` içinde gerçek parolalar, API anahtarları veya e-posta şifreleri saklamayın ve kesinlikle versiyon kontrolüne (git) commit etmeyin.
+- `.gitignore` içine `.env.properties` ekleyin.
 
 ### 2) Veritabanı
-- PostgreSQL’de `library` adında bir DB oluşturun.
-- `ddl-auto: update` açık olduğu için tablolar ilk çalıştırmada otomatik oluşturulur.
+- PostgreSQL’de varsayılan olarak `librarydb` adında bir DB oluşturmanız beklenir (yukarıdaki `POSTGRES_URL` örneğine göre). Eğer farklı bir isim kullanıyorsanız `.env.properties` içindeki `POSTGRES_URL` değerini güncelleyin.
+- Uyarı: `spring.jpa.hibernate.ddl-auto: update` ayarlı olduğu için tablolar ilk çalıştırmada otomatik oluşturulur.
+- Flyway migrationlar proje içinde bulunmakla birlikte (`src/main/resources/db/migration`), `spring.flyway.enabled` şu anda `false` olarak ayarlı.
 
 ### 3) Çalıştırma
 Windows (PowerShell):
@@ -124,15 +161,25 @@ Mac/Linux:
 ./mvnw spring-boot:run
 ```
 
+Alternatif: Jar paketleyip çalıştırma:
+
+```powershell
+# package (Windows)
+.\mvnw.cmd -DskipTests package
+# sonra
+java -jar target/library-management-system-0.0.1-SNAPSHOT.jar
+```
+
 Uygulama varsayılan olarak:
 - **Port**: `8080`
 - **Context path**: `/api/v1/library`
 
-Örn: `GET /api/v1/library/books`
+Örn: `GET http://localhost:8080/api/v1/library/books`
 
 ---
 
-## 🔌 API (Mevcut)
+## 🔌 API (Mevcut - özet)
+Aşağıda ana endpoint türleri listelenmiştir; hepsi `context-path` ile birlikte kullanılmalıdır (`/api/v1/library/...`).
 
 ### Books
 - `POST /books`
@@ -155,22 +202,23 @@ Uygulama varsayılan olarak:
 - `GET /genres/top-level`
 - `GET /genres/{id}/book-count`
 
-> Not: `application.yml` context-path nedeniyle çağrılar `/api/v1/library/...` ile başlar.
+> Not: Gerçek route güvenlik kuralları `SecurityConfig` içinde tanımlıdır; bazı endpointler authentication/authorization gerektirebilir.
 
 ---
 
-## 🔐 Güvenlik Notları
-- JWT mekanizması **Authorization: Bearer <token>** başlığıyla çalışır.
-- `SecurityConfig` içinde route kuralları tanımlıdır.
-
----
+## 🔐 Güvenlik ve test notları
+- JWT mekanizması için `Authorization: Bearer <token>` başlığı kullanılır.
+- Proje içinde testler (`src/test`) mevcut. Basit bir context-load testi vardır.
 
 ## 🧪 Test
+Projede bulunan testleri çalıştırmak için:
+
 ```bash
-mvn test
+./mvnw test        # Linux/mac
+mvnw.cmd test      # Windows PowerShell içinde .\mvnw.cmd test
 ```
 
-> Bazı ortamlarda `.m2` erişim izinleri nedeniyle test çalıştırırken yetki hatası görülebilir.
+> Bazı ortamlarda `.m2` klasör izinleri veya ağ erişimi nedeniyle test/derleme sorunları görülebilir.
 
 ---
 
@@ -187,3 +235,9 @@ mvn test
 ## 📄 Lisans
 Bu proje bir portföy/bitirme projesi olarak tasarlanmıştır. Lisans/dağıtım koşulları eklenebilir.
 
+---
+
+## Son adımlar / öneriler
+- Eğer repo içinde `.env.properties` gibi hassas bilgileri içeren bir dosya varsa, bunları git geçmişinden temizleyin ve `.gitignore` ile dışlayın.
+- Bir `.env.properties.example` dosyası ile gerekli alanları gösterin (gerçek parolalar yok).
+- Flyway migration'ları kullanmak isterseniz `spring.flyway.enabled: true` yapın ve `V2` vb. migration'ları ekleyin.
