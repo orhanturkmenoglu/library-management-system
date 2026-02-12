@@ -34,9 +34,9 @@ public class SubscriptionPlanServiceImpl implements SubscriptionPlanService {
         SubscriptionPlan plan = subscriptionPlanMapper.toEntity(subscriptionPlanDTO);
         log.info("MapToEntity Plan: {}", plan);
 
-        UserDTO currentUser = userService.getCurrentUser();
-        plan.setCreatedBy(currentUser.getFullName());
-        plan.setUpdatedBy(currentUser.getFullName());
+        UserDTO currentUserDTO = userService.getCurrentUser();
+        plan.setCreatedBy(currentUserDTO.getFullName());
+        plan.setUpdatedBy(currentUserDTO.getFullName());
 
         SubscriptionPlan savedPlan = subscriptionPlanRepository.save(plan);
         log.info("SavedPlan : {}", savedPlan);
@@ -52,8 +52,8 @@ public class SubscriptionPlanServiceImpl implements SubscriptionPlanService {
 
         subscriptionPlanMapper.updateEntity(plan, subscriptionPlanDTO);
 
-        UserDTO currentUser = userService.getCurrentUser();
-        plan.setUpdatedBy(currentUser.getFullName());
+        UserDTO currentUserDTO = userService.getCurrentUser();
+        plan.setUpdatedBy(currentUserDTO.getFullName());
         SubscriptionPlan updatedSubscriptionPlan = subscriptionPlanRepository.save(plan);
         return subscriptionPlanMapper.toDTO(updatedSubscriptionPlan);
     }
