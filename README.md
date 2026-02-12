@@ -40,7 +40,7 @@ Bu README içeriği yukarıdaki gerçek repo durumuna göre güncellendi.
 - **ISBN doğrulama** ve tekrar kayıtların engellenmesi
 
 ### 💳 Ödeme & Finans Modülü
-- **Razorpay** entegrasyonu (planlanan)
+- **Stripe** entegrasyonu (test anahtarları ile)
 - **Ceza ödemeleri**: gecikme cezası (örn. 5/gün) ve ödeme bitmeden yeni ödünç engeli
 - **Üyelik abonelikleri**: Silver/Gold planları, plan bitişi/yenileme
 - **Transaction History**: başarı/başarısız/tekrar deneme kayıtları
@@ -57,7 +57,7 @@ Bu README içeriği yukarıdaki gerçek repo durumuna göre güncellendi.
 
 ### 📊 Analitik Dashboard
 - Gelir grafikleri, kullanıcı büyümesi, popüler türler
-- Recharts / Chart.js ile görselleştirme (frontend tarafı planlı)
+- Recharts / Chart.js ile görselleştirme
 
 ---
 
@@ -79,13 +79,13 @@ com.library
 ## 🛠️ Teknoloji Yığını
 
 ### Backend
-- **Java**: 21
-- **Spring Boot**: 4.x (projede 4.0.2 olarak tanımlı)
+- **Java**: 21 (projede `pom.xml` ile)
+- **Spring Boot**: 4.x (projede `pom.xml` ile)
 - **Spring Security** + JWT
 - **Spring Data JPA / Hibernate**
 - **Validation** (Jakarta Validation)
 - **PostgreSQL** (runtime)
-- **Maven** (wrapper included)
+- **Maven**
 - **Lombok**
 
 ### Frontend (Planlanan)
@@ -224,7 +224,7 @@ mvnw.cmd test      # Windows PowerShell içinde .\mvnw.cmd test
 
 ## 🗺️ Yol Haritası (Kısa)
 - OAuth2 (Google) login akışı
-- Razorpay ödeme entegrasyonu
+- Stripe ödeme entegrasyonu
 - Abonelik planları ve plan yenileme
 - Rezervasyon kuyruğu + concurrency kontrolü
 - Scheduler: overdue işaretleme + otomatik ceza
