@@ -29,7 +29,6 @@ public record SubscriptionPlanDTO(
         @DecimalMin(value = "0.0", inclusive = false, message = "Price must be greater than zero")
         BigDecimal price,
 
-        @NotBlank(message = "Currency is required")
         @Size(min = 3, max = 3, message = "Currency must be 3 characters (ISO)")
         String currency,
 
