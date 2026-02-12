@@ -2,7 +2,6 @@ package com.library.module.user.service.impl;
 
 import com.library.module.auth.mapper.UserMapper;
 import com.library.module.user.dto.UserDTO;
-import com.library.module.user.model.User;
 import com.library.module.user.repository.UserRepository;
 import com.library.module.user.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +23,7 @@ public class UserServiceImpl implements UserService {
     public UserDTO getCurrentUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
 
-        User user = userRepository.findByEmail(email)
+        com.library.module.user.model.User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException(email));
 
         log.info("Current User: {}", user);

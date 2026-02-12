@@ -73,43 +73,16 @@ public class SubscriptionMapper {
      * @param dto
      * @return
      */
-    public Subscription toEntity(SubscriptionDTO dto) {
+    public Subscription toEntity(SubscriptionDTO dto,SubscriptionPlan plan,User user) {
         if (dto == null) return null;
 
         Subscription subscription = new Subscription();
         subscription.setId(dto.getId());
 
-        // Map user
-        if (dto.getUserId() != null) {
-            User user = userRepository.findById(dto.getUserId())
-                    .orElseThrow(() ->
-                            new UsernameNotFoundException("User not found with Id : {}" + dto.getUserId()));
-
-            subscription.setUser(user);
-        }
-
-        // Map plan
-        if (dto.getPlanId() != null) {
-            SubscriptionPlan plan = planRepository.findById(dto.getPlanId())
-                    .orElseThrow(() -> new PlanNotFoundException("Plan not found with Id :" + dto.getPlanId()));
-
-            subscription.setPlan(plan);
-        }
-
-        subscription.setPlanName(dto.getPlanName());
-        subscription.setPlanCode(dto.getPlanCode());
-        subscription.setPrice(dto.getPrice());
-
-        subscription.setStartDate(subscription.getStartDate());
-        subscription.setEndDate(subscription.getEndDate());
-        subscription.setIsActive(subscription.getIsActive());
-        subscription.setMaxBooksAllowed(subscription.getMaxBooksAllowed());
-        subscription.setMaxDaysPerBook(subscription.getMaxDaysPerBook());
-        subscription.setAutoRenew(subscription.getAutoRenew());
-        subscription.setCancelledAt(subscription.getCancelledAt());
-        subscription.setCancellationReason(subscription.getCancellationReason());
-        subscription.setNotes(subscription.getNotes());
-
+        subscription.setUser(user);
+        subscription.setPlan(plan);
+        subscription.setNotes(dto.getNotes());
+        
         return subscription;
     }
 

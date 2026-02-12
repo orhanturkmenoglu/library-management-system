@@ -1,5 +1,6 @@
 package com.library.module.subscription.service.impl;
 
+import com.library.module.auth.mapper.UserMapper;
 import com.library.module.subscription.dto.SubscriptionDTO;
 import com.library.module.subscription.exception.PlanNotFoundException;
 import com.library.module.subscription.exception.SubscriptionException;
@@ -35,12 +36,13 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     public SubscriptionDTO subscribe(SubscriptionDTO dto) {
         log.info("SubscriptionServiceImpl::subscribe started...");
 
-        UserDTO currentUser = userService.getCurrentUser();
+        UserDTO currentUserDTO = userService.getCurrentUser();
+
 
         SubscriptionPlan plan = planRepository.findById(dto.getPlanId())
                 .orElseThrow(() -> new PlanNotFoundException("Plan Id not found."));
 
-        Subscription subscription = subscriptionMapper.toEntity(dto);
+        Subscription subscription = subscriptionMapper.toEntity(dto, plan, UserMapper.toEntity(currentUserDTO));
         subscription.initializeFromPlan();
         subscription.setIsActive(false);
 
@@ -53,10 +55,10 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Override
     public SubscriptionDTO getUsersActiveSubscription(Long userId) {
-        UserDTO currentUser = userService.getCurrentUser();
+        UserDTO currentUserDTO = userService.getCurrentUser();
 
         Subscription subscription = subscriptionRepository.
-                findActiveSubscriptionByUserId(currentUser.getId(), LocalDate.now())
+                findActiveSubscriptionByUserId(currentUserDTO.getId(), LocalDate.now())
                 .orElseThrow(() -> new SubscriptionNotFoundException("No active subscription found!"));
 
         return subscriptionMapper.toDTO(subscription);
