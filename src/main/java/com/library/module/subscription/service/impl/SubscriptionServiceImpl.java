@@ -12,6 +12,8 @@ import com.library.module.subscription.repository.SubscriptionPlanRepository;
 import com.library.module.subscription.repository.SubscriptionRepository;
 import com.library.module.subscription.service.SubscriptionService;
 import com.library.module.user.dto.UserDTO;
+import com.library.module.user.model.User;
+import com.library.module.user.repository.UserRepository;
 import com.library.module.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +33,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     private final SubscriptionRepository subscriptionRepository;
     private final SubscriptionMapper subscriptionMapper;
     private final UserService userService;
+    private final UserRepository userRepository;
 
     @Override
     public SubscriptionDTO subscribe(SubscriptionDTO dto) {
@@ -38,11 +41,13 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
         UserDTO currentUserDTO = userService.getCurrentUser();
 
+        User user = userRepository.findById(currentUserDTO.getId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         SubscriptionPlan plan = planRepository.findById(dto.getPlanId())
                 .orElseThrow(() -> new PlanNotFoundException("Plan Id not found."));
 
-        Subscription subscription = subscriptionMapper.toEntity(dto, plan, UserMapper.toEntity(currentUserDTO));
+        Subscription subscription = subscriptionMapper.toEntity(dto, plan, user);
         subscription.initializeFromPlan();
         subscription.setIsActive(false);
 
