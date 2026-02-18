@@ -1,6 +1,7 @@
 package com.library.module.subscription.service;
 
 import com.library.module.subscription.dto.SubscriptionDTO;
+import com.library.module.subscription.model.SubscriptionPlan;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
@@ -19,4 +20,5 @@ public interface SubscriptionService {
 
     void deactivateExpiredSubscription();
 
+    SubscriptionPlan getPlanByCode(String planCode);
 }
