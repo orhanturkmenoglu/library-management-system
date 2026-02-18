@@ -4,10 +4,13 @@ import com.library.module.payment.dto.payload.PaymentDTO;
 import com.library.module.payment.dto.payload.PaymentInitiateRequest;
 import com.library.module.payment.dto.request.PaymentVerifyRequest;
 import com.library.module.payment.dto.response.PaymentInitiateResponse;
+import com.library.module.payment.dto.response.PaymentLinkResponse;
+import com.library.module.payment.enums.PaymentGateway;
 import com.library.module.payment.enums.PaymentStatus;
 import com.library.module.payment.model.Payment;
 import com.library.module.payment.repository.PaymentRepository;
 import com.library.module.payment.service.PaymentService;
+import com.library.module.payment.service.gateway.RazorpayService;
 import com.library.module.subscription.exception.SubscriptionNotFoundException;
 import com.library.module.subscription.model.Subscription;
 import com.library.module.subscription.repository.SubscriptionRepository;
@@ -32,6 +35,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentRepository paymentRepository;
     private final UserRepository userRepository;
     private final SubscriptionRepository subscriptionRepository;
+    private final RazorpayService razorpayService;
 
     @Override
     public PaymentInitiateResponse initiatePayment(PaymentInitiateRequest request) {
@@ -59,7 +63,29 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         payment = paymentRepository.save(payment);
-        return null;
+
+        PaymentInitiateResponse  response = new PaymentInitiateResponse();
+        if(request.getPaymentGateway() == PaymentGateway.RAZORPAY){
+            PaymentLinkResponse paymentLinkResponse = razorpayService
+                    .createPaymentLink(user, payment);
+
+            response = PaymentInitiateResponse.builder()
+                    .paymentId(payment.getId())
+                    .paymentGateway(payment.getPaymentGateway())
+                    .checkoutUrl(paymentLinkResponse.getPayment_link_url())
+                    .transactionId(paymentLinkResponse.getPayment_link_id())
+                    .amount(payment.getAmount())
+                    .description(payment.getDescription())
+                    .success(true)
+                    .message("Payment initiated Successfully")
+                    .build();
+            payment.setGatewayOrderId(paymentLinkResponse.getPayment_link_id());
+        }
+
+        payment.setPaymentStatus(PaymentStatus.PENDING);
+        paymentRepository.save(payment);
+
+        return response;
     }
 
     @Override

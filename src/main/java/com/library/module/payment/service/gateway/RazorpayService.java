@@ -3,9 +3,12 @@ package com.library.module.payment.service.gateway;
 import com.library.module.payment.dto.response.PaymentLinkResponse;
 import com.library.module.payment.enums.PaymentType;
 import com.library.module.payment.model.Payment;
+import com.library.module.subscription.model.SubscriptionPlan;
+import com.library.module.subscription.service.SubscriptionService;
 import com.library.module.user.model.User;
 import com.razorpay.PaymentLink;
 import com.razorpay.RazorpayClient;
+import com.razorpay.RazorpayException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
@@ -19,6 +22,7 @@ import java.math.BigDecimal;
 @RequiredArgsConstructor
 public class RazorpayService {
 
+    private final SubscriptionService subscriptionService;
     @Value("${razorpay.key.id}")
     private String razorPayKeyId;
 
@@ -91,8 +95,49 @@ public class RazorpayService {
 
             return paymentLinkResponse;
 
-        } catch (Exception e) {
-            log.error("RazorpayService::PaymentLinkResponse createPaymentLink{}", e.getMessage());
+        } catch (RazorpayException razorpayException) {
+            log.error("RazorpayService::PaymentLinkResponse createPaymentLink{}", razorpayException.getMessage());
+            throw new RuntimeException(razorpayException.getMessage());
         }
+    }
+
+    public JSONObject fetchPaymentDetails(String paymentId) {
+        try {
+            RazorpayClient razorpay = new RazorpayClient(razorPayKeyId, razorPayKeySecret);
+            com.razorpay.Payment payment = razorpay.payments.fetch(paymentId);
+
+            return payment.toJson();
+        } catch (RazorpayException razorpayException) {
+            throw new RuntimeException(razorpayException.getMessage());
+        }
+    }
+
+    public boolean isValidPayment(String paymentId) {
+        JSONObject paymentDetails = fetchPaymentDetails(paymentId);
+        String status = paymentDetails.optString("status");
+        BigDecimal amount = paymentDetails.optBigDecimal("amount", new BigDecimal(0));
+        BigDecimal amountInRupees = amount.divide(new BigDecimal(100));
+
+        JSONObject notes = paymentDetails.optJSONObject("notes");
+
+        String paymentType = notes.optString("type");
+
+        if (!"captured".equalsIgnoreCase(status)) {
+            log.warn("Payment not captured.Current status : {}", status);
+            return false;
+        }
+
+        if (paymentType.equals(PaymentType.MEMBERSHIP.toString())) {
+            String planCode = notes.optString("plan");
+            SubscriptionPlan plan = subscriptionService.getPlanByCode(planCode);
+
+            return amountInRupees == plan.getPrice();
+        }else if(paymentType.equals(PaymentType.FINE.toString())){
+            Long fineId = notes.getLong("fine_id");
+           /* Fine fine = fineRepository.findById(fineId)
+                    .orElseThrow(()->new FineException("Fine not found "))*/
+            /*return fine.getAmount == amountInRupees;*/
+        }
+        return false;
     }
 }
